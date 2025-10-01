@@ -206,25 +206,36 @@ export default function Home() {
     setError("")
 
     try {
+      console.log("[v0] Starting QR generation process")
+      console.log("[v0] Image:", selectedImage.name, selectedImage.type, selectedImage.size)
+
       const formData = new FormData()
       formData.append("file", selectedImage)
+
+      console.log("[v0] Uploading to /api/upload")
 
       const uploadResponse = await fetch("/api/upload", {
         method: "POST",
         body: formData,
       })
 
+      console.log("[v0] Upload response status:", uploadResponse.status)
+
       if (!uploadResponse.ok) {
         const errorData = await uploadResponse.json()
-        throw new Error(errorData.error || "Failed to upload image")
+        console.error("[v0] Upload failed:", errorData)
+        throw new Error(errorData.details || errorData.error || "Failed to upload image")
       }
 
       const uploadData = await uploadResponse.json()
+      console.log("[v0] Upload successful, image URL:", uploadData.imageUrl)
+
       const imageUrl = uploadData.imageUrl
 
       const qrId = Date.now().toString()
 
       const viewerUrl = `${window.location.origin}/view/${qrId}`
+      console.log("[v0] Generating QR code for URL:", viewerUrl)
 
       const qrCodeDataUrl = await QRCode.toDataURL(viewerUrl, {
         width: 400,
@@ -244,6 +255,8 @@ export default function Home() {
         qrCode: qrCodeDataUrl,
       }
 
+      console.log("[v0] QR code generated successfully")
+
       setGeneratedQR(newQR)
       setQrDataUrl(qrCodeDataUrl)
       setQrList((prev) => [newQR, ...prev])
@@ -252,8 +265,9 @@ export default function Home() {
         window.scrollTo({ top: 0, behavior: "smooth" })
       }, 100)
     } catch (err) {
-      setError(err instanceof Error ? err.message : "Failed to generate QR code. Please try again.")
-      console.error("QR generation error:", err)
+      const errorMessage = err instanceof Error ? err.message : "Failed to generate QR code. Please try again."
+      setError(errorMessage)
+      console.error("[v0] QR generation error:", err)
     } finally {
       setLoading(false)
     }
