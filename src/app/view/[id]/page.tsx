@@ -4,7 +4,7 @@ import { useEffect, useState } from "react"
 import { useParams } from "next/navigation"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Alert, AlertDescription } from "@/components/ui/alert"
-import { ImageIcon, Clock, AlertCircle } from "lucide-react"
+import { Clock, AlertCircle } from "lucide-react"
 import { Badge } from "@/components/ui/badge"
 
 interface ImageData {
@@ -135,10 +135,6 @@ export default function ViewImage() {
       <div className="container mx-auto max-w-4xl py-8">
         <Card className="border-2 border-blue-100">
           <CardHeader className="text-center">
-            <div className="flex items-center justify-center gap-2 mb-2">
-              <ImageIcon className="w-6 h-6 text-blue-600" />
-              <CardTitle className="text-2xl">Shared Image</CardTitle>
-            </div>
             <div className="flex items-center justify-center gap-2">
               <Badge variant="default" className="bg-green-600">
                 Active
@@ -155,10 +151,6 @@ export default function ViewImage() {
                 alt={imageData.fileName}
                 className="w-full h-auto max-h-[600px] object-contain mx-auto rounded-lg"
               />
-            </div>
-            <div className="text-center text-sm text-gray-600">
-              <p className="font-semibold">{imageData.fileName}</p>
-              <p>Uploaded: {new Date(imageData.createdAt).toLocaleString("id-ID")}</p>
             </div>
           </CardContent>
         </Card>
