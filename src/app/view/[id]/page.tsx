@@ -24,33 +24,57 @@ export default function ViewImage() {
   const [isExpired, setIsExpired] = useState(false)
 
   useEffect(() => {
-    // Load image data from localStorage
-    const savedQRs = localStorage.getItem("qrList")
-    if (savedQRs) {
+    let cancelled = false
+
+    async function load() {
       try {
-        const qrList = JSON.parse(savedQRs)
-        const found = qrList.find((qr: ImageData) => qr.id === id)
-
-        if (found) {
-          setImageData(found)
-
-          // Check if expired
-          const expiryDate = new Date(found.expiresAt)
-          const now = new Date()
-          if (expiryDate <= now) {
-            setIsExpired(true)
+        // Try server-side storage first
+        const apiRes = await fetch(`/api/qr/${id}`, { cache: "no-store" })
+        if (apiRes.ok) {
+          const json = await apiRes.json()
+          if (json?.found && json?.data) {
+            if (!cancelled) {
+              setImageData(json.data)
+              const expiryDate = new Date(json.data.expiresAt)
+              setIsExpired(expiryDate <= new Date())
+              setLoading(false)
+            }
+            return
           }
-        } else {
-          setError("Image not found or has been deleted")
         }
       } catch (e) {
-        console.error("Failed to load image data:", e)
-        setError("Failed to load image data")
+        console.log("[v0] Supabase fetch skipped/fallback:", (e as Error)?.message)
       }
-    } else {
-      setError("No image data found")
+
+      // Fallback: localStorage
+      const savedQRs = typeof window !== "undefined" ? localStorage.getItem("qrList") : null
+      if (savedQRs) {
+        try {
+          const qrList = JSON.parse(savedQRs)
+          const found = qrList.find((qr: ImageData) => qr.id === id)
+          if (found) {
+            if (!cancelled) {
+              setImageData(found)
+              const expiryDate = new Date(found.expiresAt)
+              setIsExpired(expiryDate <= new Date())
+            }
+          } else {
+            if (!cancelled) setError("Image not found or has been deleted")
+          }
+        } catch (e) {
+          console.error("Failed to load image data:", e)
+          if (!cancelled) setError("Failed to load image data")
+        }
+      } else {
+        if (!cancelled) setError("No image data found")
+      }
+      if (!cancelled) setLoading(false)
     }
-    setLoading(false)
+
+    load()
+    return () => {
+      cancelled = true
+    }
   }, [id])
 
   if (loading) {

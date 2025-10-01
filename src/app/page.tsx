@@ -235,7 +235,7 @@ export default function Home() {
 
       // PERBAIKAN: Gunakan public_id dari Cloudinary
       // Extract hanya ID-nya tanpa folder prefix
-      const qrId = publicId.split('/').pop() || publicId // Ambil "j7vempunfeqzzbubbftu"
+      const qrId = publicId.split("/").pop() || publicId // Ambil "j7vempunfeqzzbubbftu"
 
       const viewerUrl = `${window.location.origin}/view/${qrId}`
       console.log("[v0] Generating QR code for URL:", viewerUrl)
@@ -264,6 +264,18 @@ export default function Home() {
       setGeneratedQR(newQR)
       setQrDataUrl(qrCodeDataUrl)
       setQrList((prev) => [newQR, ...prev])
+
+      try {
+        const saveRes = await fetch("/api/qr", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify(newQR),
+        })
+        const saveJson = await saveRes.json()
+        console.log("[v0] Save to Supabase result:", saveJson)
+      } catch (e) {
+        console.log("[v0] Skipped saving to Supabase (or failed gracefully):", (e as Error)?.message)
+      }
 
       setTimeout(() => {
         window.scrollTo({ top: 0, behavior: "smooth" })
@@ -378,8 +390,9 @@ export default function Home() {
                       onDragOver={handleDragOver}
                       onDragLeave={handleDragLeave}
                       onDrop={handleDrop}
-                      className={`border-2 border-dashed rounded-lg p-8 text-center transition-colors ${isDragging ? "border-blue-500 bg-blue-50" : "border-gray-300 hover:border-blue-400"
-                        }`}
+                      className={`border-2 border-dashed rounded-lg p-8 text-center transition-colors ${
+                        isDragging ? "border-blue-500 bg-blue-50" : "border-gray-300 hover:border-blue-400"
+                      }`}
                     >
                       {imagePreview ? (
                         <div className="space-y-4">
