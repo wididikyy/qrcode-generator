@@ -228,14 +228,18 @@ export default function Home() {
       }
 
       const uploadData = await uploadResponse.json()
-      console.log("[v0] Upload successful, image URL:", uploadData.imageUrl)
+      console.log("[v0] Upload successful:", uploadData)
 
       const imageUrl = uploadData.imageUrl
+      const publicId = uploadData.publicId // e.g., "qr-images/j7vempunfeqzzbubbftu"
 
-      const qrId = Date.now().toString()
+      // PERBAIKAN: Gunakan public_id dari Cloudinary
+      // Extract hanya ID-nya tanpa folder prefix
+      const qrId = publicId.split('/').pop() || publicId // Ambil "j7vempunfeqzzbubbftu"
 
       const viewerUrl = `${window.location.origin}/view/${qrId}`
       console.log("[v0] Generating QR code for URL:", viewerUrl)
+      console.log("[v0] Using Cloudinary public_id as QR ID:", qrId)
 
       const qrCodeDataUrl = await QRCode.toDataURL(viewerUrl, {
         width: 400,
@@ -251,11 +255,11 @@ export default function Home() {
         fileName: selectedImage.name,
         expiresAt: expirationDate.toISOString(),
         createdAt: new Date().toISOString(),
-        id: qrId,
+        id: qrId, // PERBAIKAN: Gunakan Cloudinary public_id
         qrCode: qrCodeDataUrl,
       }
 
-      console.log("[v0] QR code generated successfully")
+      console.log("[v0] QR code generated successfully with ID:", qrId)
 
       setGeneratedQR(newQR)
       setQrDataUrl(qrCodeDataUrl)
@@ -374,9 +378,8 @@ export default function Home() {
                       onDragOver={handleDragOver}
                       onDragLeave={handleDragLeave}
                       onDrop={handleDrop}
-                      className={`border-2 border-dashed rounded-lg p-8 text-center transition-colors ${
-                        isDragging ? "border-blue-500 bg-blue-50" : "border-gray-300 hover:border-blue-400"
-                      }`}
+                      className={`border-2 border-dashed rounded-lg p-8 text-center transition-colors ${isDragging ? "border-blue-500 bg-blue-50" : "border-gray-300 hover:border-blue-400"
+                        }`}
                     >
                       {imagePreview ? (
                         <div className="space-y-4">
