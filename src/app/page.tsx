@@ -16,7 +16,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { Badge } from "@/components/ui/badge"
 
 interface QRData {
-  imageData: string
+  imageUrl: string // Changed from imageData to imageUrl (Cloudinary URL)
   fileName: string
   expiresAt: string
   createdAt: string
@@ -110,7 +110,6 @@ export default function Home() {
   const [error, setError] = useState("")
   const [loading, setLoading] = useState(false)
 
-  // Load QR list dari storage saat component mount
   useEffect(() => {
     const savedQRs = localStorage.getItem("qrList")
     if (savedQRs) {
@@ -123,7 +122,6 @@ export default function Home() {
     }
   }, [])
 
-  // Save QR list ke storage setiap kali berubah
   useEffect(() => {
     if (qrList.length > 0) {
       localStorage.setItem("qrList", JSON.stringify(qrList))
@@ -208,34 +206,41 @@ export default function Home() {
     setError("")
 
     try {
-      // Simulate encoding image data into QR
-      const qrData = {
-        imageData: imagePreview!,
+      const formData = new FormData()
+      formData.append("file", selectedImage)
+
+      const uploadResponse = await fetch("/api/upload", {
+        method: "POST",
+        body: formData,
+      })
+
+      if (!uploadResponse.ok) {
+        const errorData = await uploadResponse.json()
+        throw new Error(errorData.error || "Failed to upload image")
+      }
+
+      const uploadData = await uploadResponse.json()
+      const imageUrl = uploadData.imageUrl
+
+      const qrId = Date.now().toString()
+
+      const viewerUrl = `${window.location.origin}/view/${qrId}`
+
+      const qrCodeDataUrl = await QRCode.toDataURL(viewerUrl, {
+        width: 400,
+        margin: 2,
+        color: {
+          dark: "#1e40af",
+          light: "#ffffff",
+        },
+      })
+
+      const newQR: QRData = {
+        imageUrl,
         fileName: selectedImage.name,
         expiresAt: expirationDate.toISOString(),
         createdAt: new Date().toISOString(),
-        id: Date.now().toString(),
-      }
-
-      // Generate QR code
-      const qrCodeDataUrl = await QRCode.toDataURL(
-        JSON.stringify({
-          id: qrData.id,
-          type: "image",
-          expires: qrData.expiresAt,
-        }),
-        {
-          width: 400,
-          margin: 2,
-          color: {
-            dark: "#1e40af",
-            light: "#ffffff",
-          },
-        },
-      )
-
-      const newQR: QRData = {
-        ...qrData,
+        id: qrId,
         qrCode: qrCodeDataUrl,
       }
 
@@ -243,12 +248,11 @@ export default function Home() {
       setQrDataUrl(qrCodeDataUrl)
       setQrList((prev) => [newQR, ...prev])
 
-      // Switch to results view
       setTimeout(() => {
         window.scrollTo({ top: 0, behavior: "smooth" })
       }, 100)
     } catch (err) {
-      setError("Failed to generate QR code. Please try again.")
+      setError(err instanceof Error ? err.message : "Failed to generate QR code. Please try again.")
       console.error("QR generation error:", err)
     } finally {
       setLoading(false)
@@ -456,7 +460,7 @@ export default function Home() {
                       className="w-full bg-blue-600 hover:bg-blue-700 text-white h-12 text-lg"
                     >
                       {loading ? (
-                        "Generating..."
+                        "Uploading & Generating..."
                       ) : (
                         <>
                           <QrCode className="w-5 h-5 mr-2" />
@@ -472,7 +476,7 @@ export default function Home() {
               <Card className="border-2 border-blue-100 max-w-2xl mx-auto">
                 <CardHeader className="text-center">
                   <CardTitle className="text-2xl text-blue-600">QR Code Generated Successfully!</CardTitle>
-                  <CardDescription>Your QR code is ready to download and use</CardDescription>
+                  <CardDescription>Scan this QR code to view your image</CardDescription>
                 </CardHeader>
                 <CardContent className="space-y-6">
                   <div className="bg-white p-8 rounded-lg shadow-inner flex justify-center">
